@@ -108,7 +108,7 @@ public:
     bool GetVarAsBool(const char* varName, bool defVal);
     int GetVarAsInt(const char* varName, int defVal);
 
-    VapourSynther(void);
+    VapourSynther(const VSSCRIPTAPI *vssapi);
     ~VapourSynther(void);
     int/*error*/ Init(AvfsLog_* log, AvfsVolume_* volume);
     void AddRef(void);
@@ -469,8 +469,7 @@ int/*error*/ VapourSynther::newEnv() {
 ---------------------------------------------------------*/
 
 // Constructor
-VapourSynther::VapourSynther(void) : pendingRequests(0) {
-    vssapi = getVSScriptAPI(VSSCRIPT_API_VERSION);
+VapourSynther::VapourSynther(const VSSCRIPTAPI *vssapi) : pendingRequests(0), vssapi(vssapi) {
     vsapi = vssapi->getVSAPI(VAPOURSYNTH_API_VERSION);
 }
 
@@ -559,10 +558,11 @@ const VSAPI *VapourSynther::GetVSApi() {
 
 void VsfsProcessScript(
     AvfsLog_* log,
-    AvfsVolume_* volume) {
+    AvfsVolume_* volume,
+    const VSSCRIPTAPI *vssapi) {
     // Construct an implementation of the media interface and
     // initialize the script.
-    VapourSynther* avs = new(std::nothrow) VapourSynther();
+    VapourSynther* avs = new(std::nothrow) VapourSynther(vssapi);
     if (avs && avs->Init(log, volume) != 0) {
         avs->Release();
         avs = 0;

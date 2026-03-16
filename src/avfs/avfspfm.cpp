@@ -46,6 +46,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cstdlib>
+#include <filesystem>
 #include <wchar.h>
 #include <new>
 #include <cstdio>
@@ -57,8 +58,11 @@
 #include "include/pfmmarshaller.h"
 #include "avfspfm.h"
 #include "../common/vsutf16.h"
-#include "../../src/core/version.h"
 #include <VSScript4.h>
+
+#define XSTR(x) STR(x)
+#define STR(x) #x
+#define AVFS_VERSION 1
 
 #define CCALL __cdecl
 
@@ -765,9 +769,31 @@ void Volume::ProcessScript(void)
             // script to fix errors. Media logic will need to report
             // errors through error log file.
         scriptFile = file;
-        static HMODULE lib = LoadLibrary(L"VSScript.dll");
-        if ((!sscmpi(ssrchr(scriptFile->name, '.'), L".vpy") || !sscmpi(ssrchr(scriptFile->name, '.'), L".py")) && lib && getVSScriptAPI(VSSCRIPT_API_VERSION))
-            VsfsProcessScript(this, this);
+
+
+
+        auto getVSScriptAPIFuncPtr = []() {
+            auto loadVSScriptDLL = []() {
+                auto vsscriptPath = _wgetenv(L"VSSCRIPT_PATH");
+                if (vsscriptPath)
+                    return LoadLibraryExW(L"VSScript.dll", nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+                else
+                    return LoadLibraryW(L"VSScript.dll");
+                };
+
+            HMODULE lib = loadVSScriptDLL();
+            if (!lib)
+                return static_cast<const VSSCRIPTAPI *>(nullptr);
+            auto func = reinterpret_cast<const VSSCRIPTAPI*(*)(int)>(GetProcAddress(lib, "getVSScriptAPI"));
+            if (!func)
+                return static_cast<const VSSCRIPTAPI*>(nullptr);
+            return func(VSSCRIPT_API_VERSION);
+            };
+
+        static const VSSCRIPTAPI *vsscriptAPI = getVSScriptAPIFuncPtr();
+
+        if ((!sscmpi(ssrchr(scriptFile->name, '.'), L".vpy") || !sscmpi(ssrchr(scriptFile->name, '.'), L".py")) && vsscriptAPI)
+            VsfsProcessScript(this, this, vsscriptAPI);
         else
             AvfsProcessScript(this, this);
         scriptFile = 0;
@@ -1499,8 +1525,8 @@ int wmain(int argc,const wchar_t*const* argv)
     {
         error = -2;
         fprintf(fstatus,
-            "Avisynth Virtual File System with VapourSynth support\n"
-            "Version R" XSTR(VAPOURSYNTH_CORE_VERSION) "\n"
+            "Avisynth Virtual File System with VapourSynth support (standalone)\n"
+            "Version R" XSTR(AVFS_VERSION) "\n"
             "Copyright 2008-2015 Ben Rudiak-Gould et al.\n"
             "For help run: avfs -h\n");
     }
