@@ -784,11 +784,14 @@ void Volume::ProcessScript(void)
             HMODULE lib = loadVSScriptDLL();
             if (!lib)
                 return static_cast<const VSSCRIPTAPI *>(nullptr);
-            auto func = reinterpret_cast<const VSSCRIPTAPI*(*)(int)>(GetProcAddress(lib, "getVSScriptAPI"));
-            if (!func)
+            auto getAPI = reinterpret_cast<decltype(getVSScriptAPI) *>(GetProcAddress(lib, "getVSScriptAPI"));
+            auto getError = reinterpret_cast<decltype(getVSScriptAPILastError) *>(GetProcAddress(lib, "getVSScriptAPILastError"));
+            if (!getAPI || !getError)
                 return static_cast<const VSSCRIPTAPI*>(nullptr);
-            return func(VSSCRIPT_API_VERSION);
+            return getAPI(VSSCRIPT_API_VERSION);
             };
+
+        // FIXME, pass on init errors if it's a VS script
 
         static const VSSCRIPTAPI *vsscriptAPI = getVSScriptAPIFuncPtr();
 
