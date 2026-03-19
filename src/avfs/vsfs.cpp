@@ -470,7 +470,8 @@ int/*error*/ VapourSynther::newEnv() {
 
 // Constructor
 VapourSynther::VapourSynther(const VSSCRIPTAPI *vssapi) : pendingRequests(0), vssapi(vssapi) {
-    vsapi = vssapi->getVSAPI(VAPOURSYNTH_API_VERSION);
+    if (vssapi)
+        vsapi = vssapi->getVSAPI(VAPOURSYNTH_API_VERSION);
 }
 
 /*---------------------------------------------------------
@@ -559,18 +560,22 @@ const VSAPI *VapourSynther::GetVSApi() {
 void VsfsProcessScript(
     AvfsLog_* log,
     AvfsVolume_* volume,
-    const VSSCRIPTAPI *vssapi) {
+    const std::pair<const VSSCRIPTAPI *, const char *> &vsscriptAPI) {
     // Construct an implementation of the media interface and
     // initialize the script.
-    VapourSynther* avs = new(std::nothrow) VapourSynther(vssapi);
-    if (avs && avs->Init(log, volume) != 0) {
-        avs->Release();
-        avs = 0;
-    }
-    if (avs) {
-        AvfsWavMediaInit(log, avs, volume);
-        VsfsAviMediaInit(log, avs, volume);
-        avs->Release();
+    if (vsscriptAPI.first) {
+        VapourSynther *avs = new(std::nothrow) VapourSynther(vsscriptAPI.first);
+        if (avs && avs->Init(log, volume) != 0) {
+            avs->Release();
+            avs = 0;
+        }
+        if (avs) {
+            AvfsWavMediaInit(log, avs, volume);
+            VsfsAviMediaInit(log, avs, volume);
+            avs->Release();
+        }
+    } else {
+        log->Line((L"Failed to initialize VapourSynth: " + utf16_from_utf8(vsscriptAPI.second)).c_str());
     }
 }
 

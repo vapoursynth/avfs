@@ -774,31 +774,30 @@ void Volume::ProcessScript(void)
 
         auto getVSScriptAPIFuncPtr = []() {
             auto loadVSScriptDLL = []() {
-                auto vsscriptPath = _wgetenv(L"VSSCRIPT_PATH");
-                if (vsscriptPath)
-                    return LoadLibraryExW(L"VSScript.dll", nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
-                else
-                    return LoadLibraryW(L"VSScript.dll");
+                const wchar_t *vsscriptPath = _wgetenv(L"VSSCRIPT_PATH");
+                return LoadLibraryExW(vsscriptPath ? vsscriptPath : L"VSScript.dll", nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
                 };
 
             HMODULE lib = loadVSScriptDLL();
             if (!lib)
-                return static_cast<const VSSCRIPTAPI *>(nullptr);
+                return std::pair<const VSSCRIPTAPI *, const char *>(nullptr, "Failed to load VSScript library");
             auto getAPI = reinterpret_cast<decltype(getVSScriptAPI) *>(GetProcAddress(lib, "getVSScriptAPI"));
             auto getError = reinterpret_cast<decltype(getVSScriptAPILastError) *>(GetProcAddress(lib, "getVSScriptAPILastError"));
             if (!getAPI || !getError)
-                return static_cast<const VSSCRIPTAPI*>(nullptr);
-            return getAPI(VSSCRIPT_API_VERSION);
+                std::pair<const VSSCRIPTAPI *, const char *>(nullptr, "Failed to locate entry points in VSScript library");
+            const VSSCRIPTAPI *api = getAPI(VSSCRIPT_API_VERSION);
+            return std::pair<const VSSCRIPTAPI *, const char *>(api, api ? nullptr : getError());
             };
 
         // FIXME, pass on init errors if it's a VS script
 
-        static const VSSCRIPTAPI *vsscriptAPI = getVSScriptAPIFuncPtr();
+        static const std::pair<const VSSCRIPTAPI *, const char *> vsscriptAPI = getVSScriptAPIFuncPtr();
 
-        if ((!sscmpi(ssrchr(scriptFile->name, '.'), L".vpy") || !sscmpi(ssrchr(scriptFile->name, '.'), L".py")) && vsscriptAPI)
+        if ((!sscmpi(ssrchr(scriptFile->name, '.'), L".vpy") || !sscmpi(ssrchr(scriptFile->name, '.'), L".py"))) {
             VsfsProcessScript(this, this, vsscriptAPI);
-        else
+        } else {
             AvfsProcessScript(this, this);
+        }
         scriptFile = 0;
     }
 }

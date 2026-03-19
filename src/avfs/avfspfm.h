@@ -61,6 +61,6 @@ struct AvfsVolume_
 };
 
 void AvfsProcessScript(AvfsLog_* log,AvfsVolume_* volume);
-void VsfsProcessScript(AvfsLog_* log, AvfsVolume_* volume, const VSSCRIPTAPI *vssapi);
+void VsfsProcessScript(AvfsLog_* log, AvfsVolume_* volume, const std::pair<const VSSCRIPTAPI *, const char *> &vsscriptAPI);
 
 #endif
