@@ -789,8 +789,6 @@ void Volume::ProcessScript(void)
             return std::pair<const VSSCRIPTAPI *, const char *>(api, api ? nullptr : getError());
             };
 
-        // FIXME, pass on init errors if it's a VS script
-
         static const std::pair<const VSSCRIPTAPI *, const char *> vsscriptAPI = getVSScriptAPIFuncPtr();
 
         if ((!sscmpi(ssrchr(scriptFile->name, '.'), L".vpy") || !sscmpi(ssrchr(scriptFile->name, '.'), L".py"))) {
