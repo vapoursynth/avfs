@@ -638,6 +638,17 @@ void Volume::DeleteMediaFiles(int64_t writeTime)
     }
 }
 
+static BOOL WINAPI HandlerRoutine(DWORD dwCtrlType) {
+    switch (dwCtrlType) {
+        case CTRL_C_EVENT:
+        case CTRL_BREAK_EVENT:
+        case CTRL_CLOSE_EVENT:
+            _exit(1);
+        default:
+            return FALSE;
+    }
+}
+
 void Volume::ProcessScript(void)
 {
         // Check to see if echo script and/or real script has been
@@ -790,6 +801,8 @@ void Volume::ProcessScript(void)
             };
 
         static const std::pair<const VSSCRIPTAPI *, const char *> vsscriptAPI = getVSScriptAPIFuncPtr();
+
+        SetConsoleCtrlHandler(HandlerRoutine, TRUE);
 
         if ((!sscmpi(ssrchr(scriptFile->name, '.'), L".vpy") || !sscmpi(ssrchr(scriptFile->name, '.'), L".py"))) {
             VsfsProcessScript(this, this, vsscriptAPI);
