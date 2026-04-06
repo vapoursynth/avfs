@@ -4,7 +4,6 @@
 [submodule "AviSynthPlus"]
 	path = AviSynthPlus
 	url = https://github.com/AviSynth/AviSynthPlus.git
-	branch = 3.7
 [submodule "vapoursynth"]
 	path = vapoursynth
 	url = https://github.com/vapoursynth/vapoursynth.git
